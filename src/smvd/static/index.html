@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Downloader</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #1a1d24;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #8b93a1;
+    --accent: #4f8cff;
+    --green: #3ecf8e;
+    --red: #ff5c5c;
+    --amber: #ffb454;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  h1 { font-size: 1.4rem; margin: 0 0 1.5rem; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+  }
+  .paste-row { display: flex; gap: 0.5rem; }
+  input[type="text"] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  button.danger { background: transparent; color: var(--red); border: 1px solid var(--border); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .error { color: var(--red); margin-top: 0.75rem; min-height: 1.2em; font-size: 0.9rem; }
+  .banner {
+    display: none;
+    margin-top: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  .banner.show { display: block; }
+  .banner.good { background: rgba(62, 207, 142, 0.12); color: var(--green); }
+  .banner.bad { background: rgba(255, 92, 92, 0.12); color: var(--red); }
+  .job { border-top: 1px solid var(--border); padding: 0.75rem 0; }
+  .job:first-child { border-top: none; }
+  .job-head { display: flex; align-items: center; gap: 0.75rem; }
+  .state { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .state.pending { color: var(--amber); }
+  .state.downloading { color: var(--accent); }
+  .state.done { color: var(--green); }
+  .state.failed { color: var(--red); }
+  .job-url { color: var(--muted); font-size: 0.85rem; word-break: break-all; flex: 1; }
+  .progress { height: 6px; background: var(--bg); border-radius: 3px; margin-top: 0.5rem; overflow: hidden; }
+  .progress > div { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
+  .job-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem; }
+  .job-actions a { color: var(--accent); }
+  .job-error { color: var(--red); font-size: 0.85rem; margin-top: 0.4rem; }
+  h2 { font-size: 1rem; color: var(--muted); margin: 1.5rem 0 0.5rem; font-weight: 600; }
+  .settings-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .settings-row .path { color: var(--muted); font-size: 0.85rem; }
+  .settings-row input { min-width: 260px; }
+  .empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 1rem 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Video Downloader</h1>
+
+  <section class="card">
+    <div class="paste-row">
+      <input id="url" type="text" placeholder="Paste a TikTok, Instagram, or Facebook video URL…" autocomplete="off">
+      <button id="download-btn">Download</button>
+    </div>
+    <div id="error" class="error"></div>
+    <div id="banner" class="banner"></div>
+  </section>
+
+  <section class="card">
+    <h2>Settings</h2>
+    <div class="settings-row">
+      <span class="path" id="dir-label"></span>
+      <input id="dir-input" type="text" placeholder="/home/user/Downloads">
+      <button id="dir-save" class="secondary">Apply</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Jobs</h2>
+    <div id="jobs"></div>
+    <div id="empty" class="empty">No Downloads yet. Paste a URL above.</div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var pollTimer = null;
+  var seenState = {};
+
+  var urlInput = document.getElementById("url");
+  var btn = document.getElementById("download-btn");
+  var errEl = document.getElementById("error");
+  var bannerEl = document.getElementById("banner");
+  var jobsEl = document.getElementById("jobs");
+  var emptyEl = document.getElementById("empty");
+  var dirLabel = document.getElementById("dir-label");
+  var dirInput = document.getElementById("dir-input");
+  var dirSave = document.getElementById("dir-save");
+
+  function showBanner(message, good) {
+    bannerEl.textContent = message;
+    bannerEl.className = "banner show " + (good ? "good" : "bad");
+    clearTimeout(showBanner._t);
+    showBanner._t = setTimeout(function () { bannerEl.className = "banner"; }, 5000);
+  }
+
+  function notify(title, body) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification(title, { body: body });
+    } else {
+      showBanner(title + " — " + body, true);
+    }
+  }
+
+  function requestNotifyPermission() {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }
+
+  function stateClass(s) { return "state " + s; }
+
+  function failureLabel(f) {
+    var map = {
+      unsupported_url: "Unsupported URL",
+      private: "Private video",
+      unavailable: "Video unavailable",
+      network_error: "Network error",
+      failed_other: "Failed",
+      cancelled: "Cancelled",
+      interrupted: "Interrupted"
+    };
+    return map[f] || "Failed";
+  }
+
+  function renderJobs(jobs) {
+    jobsEl.innerHTML = "";
+    if (jobs.length === 0) { emptyEl.style.display = "block"; return; }
+    emptyEl.style.display = "none";
+
+    var terminal = { done: "Download finished", failed: "Download failed" };
+    jobs.forEach(function (job) {
+      var prev = seenState[job.id];
+      if (prev && prev !== job.state && terminal[job.state]) {
+        notify(terminal[job.state], job.url);
+      }
+      seenState[job.id] = job.state;
+    });
+
+    jobs.forEach(function (job) {
+      var row = document.createElement("div");
+      row.className = "job";
+
+      var head = document.createElement("div");
+      head.className = "job-head";
+      var st = document.createElement("span");
+      st.className = stateClass(job.state);
+      st.textContent = job.state;
+      var url = document.createElement("span");
+      url.className = "job-url";
+      url.textContent = job.url;
+      head.appendChild(st);
+      head.appendChild(url);
+      row.appendChild(head);
+
+      if (job.state === "downloading") {
+        var prog = document.createElement("div");
+        prog.className = "progress";
+        var fill = document.createElement("div");
+        fill.style.width = Math.round(job.progress) + "%";
+        prog.appendChild(fill);
+        row.appendChild(prog);
+      }
+
+      var actions = document.createElement("div");
+      actions.className = "job-actions";
+      if (job.state === "done" && job.filename) {
+        var link = document.createElement("a");
+        link.href = "/download/" + job.id;
+        link.textContent = job.filename;
+        actions.appendChild(link);
+      }
+      if (job.state === "pending" || job.state === "downloading") {
+        var cancel = document.createElement("button");
+        cancel.className = "secondary";
+        cancel.textContent = "Cancel";
+        cancel.onclick = function () {
+          fetch("/jobs/" + job.id + "/cancel", { method: "POST" }).then(function () { refresh(); });
+        };
+        actions.appendChild(cancel);
+      }
+      if (job.state === "failed" && job.error !== "cancelled" && job.error !== "interrupted") {
+        var retry = document.createElement("button");
+        retry.textContent = "Retry";
+        retry.onclick = function () {
+          fetch("/jobs/" + job.id + "/retry", { method: "POST" }).then(function () { refresh(); });
+        };
+        actions.appendChild(retry);
+      }
+      if (actions.childNodes.length > 0) row.appendChild(actions);
+
+      if (job.state === "failed" && job.error) {
+        var err = document.createElement("div");
+        err.className = "job-error";
+        err.textContent = failureLabel(job.error) + (job.message ? ": " + job.message : "");
+        row.appendChild(err);
+      }
+
+      jobsEl.appendChild(row);
+    });
+  }
+
+  function refresh() {
+    return fetch("/jobs").then(function (r) { return r.json(); }).then(function (jobs) {
+      renderJobs(jobs);
+      var active = jobs.some(function (j) { return j.state === "pending" || j.state === "downloading"; });
+      if (active) {
+        if (pollTimer === null) {
+          pollTimer = setInterval(pollOnce, 1000);
+        }
+      } else if (pollTimer !== null) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+      return jobs;
+    });
+  }
+
+  function pollOnce() { refresh(); }
+
+  btn.onclick = function () {
+    var text = urlInput.value.trim();
+    errEl.textContent = "";
+    if (!text) { errEl.textContent = "Paste a URL first."; return; }
+    btn.disabled = true;
+    fetch("/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text })
+    }).then(function (r) {
+      if (!r.ok) { return r.json().then(function (b) { throw new Error(b.detail || "Failed to start Download."); }); }
+      urlInput.value = "";
+      return r.json();
+    }).then(function () {
+      return refresh();
+    }).then(function (jobs) {
+      var active = jobs.some(function (j) { return j.state === "pending" || j.state === "downloading"; });
+      if (active) { requestNotifyPermission(); }
+    }).catch(function (e) {
+      errEl.textContent = e.message;
+    }).finally(function () {
+      btn.disabled = false;
+    });
+  };
+  urlInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { btn.onclick(); } });
+
+  function loadSettings() {
+    return fetch("/settings").then(function (r) { return r.json(); }).then(function (s) {
+      dirLabel.textContent = "Download Directory: " + s.download_dir;
+      dirInput.placeholder = s.download_dir;
+    });
+  }
+
+  dirSave.onclick = function () {
+    var val = dirInput.value.trim();
+    if (!val) return;
+    fetch("/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ download_dir: val })
+    }).then(function (r) { return r.json(); }).then(function (s) {
+      dirLabel.textContent = "Download Directory: " + s.download_dir;
+      dirInput.value = "";
+      showBanner("Download Directory updated.", true);
+    }).catch(function () { showBanner("Could not save Download Directory.", false); });
+  };
+
+  Promise.all([loadSettings(), refresh()]);
+})();
+</script>
+</body>
+</html>
