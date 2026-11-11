@@ -1,0 +1,10 @@
+  Run this command:                                                                                                                                                  
+                                                                                                                                                                        
+     .venv/bin/python -m smvd                                                                                                                                           
+                                                                                                                                                                        
+     The app will start at http://127.0.0.1:8653 and open your browser automatically.                                                                                   
+                                                                                                                                                                        
+     Optional flags:                                                                                                                                                    
+                                                                                                                                                                        
+     - --no-browser — don't auto-open the browser                                                                                                                       
+     - --port N — use a specific port 

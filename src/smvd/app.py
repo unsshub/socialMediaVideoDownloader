@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -53,6 +53,14 @@ def create_app(
             raise HTTPException(status_code=400, detail="No URL found in the pasted text.")
         job = engine.submit(url)
         return {"id": job.id}
+
+    @app.get("/bookmark")
+    def bookmark_job(url: str = "") -> RedirectResponse:
+        extracted = extract_url(url)
+        if extracted is None:
+            raise HTTPException(status_code=400, detail="No URL found in the pasted text.")
+        engine.submit(extracted)
+        return RedirectResponse(url="/", status_code=303)
 
     @app.get("/jobs")
     def list_jobs(limit: int = 100) -> list[dict]:

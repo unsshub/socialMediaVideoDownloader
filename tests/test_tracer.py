@@ -80,3 +80,35 @@ def test_download_endpoint_blocks_filename_escaping_download_dir(client_factory,
     assert wait_until(lambda: client.get(f"/jobs/{job_id}").json()["state"] == "done")
     resp = client.get(f"/download/{job_id}")
     assert resp.status_code == 404
+
+
+def test_bookmark_endpoint_submits_job_and_redirects(client_factory, config):
+    client = client_factory(FakeDownloader(result=None))
+    resp = client.get(
+        "/bookmark",
+        params={"url": "https://www.instagram.com/reel/abc123/"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/"
+
+    assert wait_until(lambda: len(client.get("/jobs").json()) == 1 and client.get("/jobs").json()[0]["state"] == "done")
+    jobs = client.get("/jobs").json()
+    assert jobs[0]["url"] == "https://www.instagram.com/reel/abc123/"
+    assert (config.download_dir / "video.mp4").exists()
+
+
+def test_bookmark_endpoint_rejects_missing_url(client_factory):
+    client = client_factory(FakeDownloader())
+    resp = client.get("/bookmark", params={"url": "not a url"})
+    assert resp.status_code == 400
+
+
+def test_index_html_contains_bookmarklet_and_auto_url_handler(client_factory):
+    client = client_factory(FakeDownloader())
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+    assert 'id="bookmarklet"' in html
+    assert "encodeURIComponent(location.href)" in html
+    assert "URLSearchParams(window.location.search)" in html
