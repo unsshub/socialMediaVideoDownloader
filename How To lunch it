@@ -2,7 +2,11 @@
                                                                                                                                                                         
      .venv/bin/python -m smvd                                                                                                                                           
                                                                                                                                                                         
-     The app will start at http://127.0.0.1:8653 and open your browser automatically.                                                                                   
+     The app will start at http://127.0.0.1:8653 and open your browser automatically.
+
+    clik on the download video bookmark buuton on the browser and the video will be downloaded automaticaly        
+    
+                                                                                   
                                                                                                                                                                         
      Optional flags:                                                                                                                                                    
                                                                                                                                                                         
