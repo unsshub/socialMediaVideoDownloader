@@ -50,6 +50,13 @@ def test_categorize_other():
     assert message  # message is retained
 
 
+def test_categorize_strips_ansi_codes():
+    error, message = _categorize("\x1b[0;31mERROR:\x1b[0m unable to download video data: HTTP Error 403: Forbidden")
+    assert error == Failure.NETWORK
+    assert "\x1b" not in message
+    assert message == "ERROR: unable to download video data: HTTP Error 403: Forbidden"
+
+
 def test_extract_url_from_share_text():
     from smvd.downloader import extract_url
 

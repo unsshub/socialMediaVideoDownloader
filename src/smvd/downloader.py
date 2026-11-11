@@ -75,6 +75,9 @@ class YtDlpDownloader:
             "noplaylist": True,
             "js_runtimes": {"deno": {}, "node": {}, "bun": {}, "quickjs": {}},
             "remote_components": ["ejs:github"],
+            "retries": 3,
+            "fragment_retries": 3,
+            "color": "no_color",
             "progress_hooks": [hook],
             "quiet": True,
             "no_warnings": True,
@@ -98,9 +101,13 @@ class YtDlpDownloader:
         return DownloadResult(state=JobState.DONE, filename=files[0].name)
 
 
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
 def _categorize(raw: str) -> tuple[Failure, str]:
-    lowered = raw.lower()
-    message = raw.strip().splitlines()[-1].strip() if raw.strip() else "Download failed."
+    cleaned = _ANSI_RE.sub("", raw)
+    lowered = cleaned.lower()
+    message = cleaned.strip().splitlines()[-1].strip() if cleaned.strip() else "Download failed."
     if "unsupported url" in lowered:
         return Failure.UNSUPPORTED_URL, message
     if (
