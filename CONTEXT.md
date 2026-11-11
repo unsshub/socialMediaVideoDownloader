@@ -9,7 +9,7 @@ A moving-picture media item posted on a supported social platform, downloaded to
 _Avoid_: Media, clip, asset
 
 **Platform**:
-A supported social media site from which videos can be downloaded. Currently: TikTok, Instagram, Facebook.
+A supported social media site from which videos can be downloaded. Currently: YouTube, TikTok, Instagram, Facebook.
 _Avoid_: Site, social network, source
 
 **Download**:

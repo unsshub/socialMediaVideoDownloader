@@ -1,10 +1,10 @@
 # Video Downloader — Product Requirements
 
-A local web application for Linux that downloads Videos from TikTok, Instagram, and Facebook to the user's computer.
+A local web application for Linux that downloads Videos from YouTube, TikTok, Instagram, and Facebook to the user's computer.
 
 ## Scope
 
-In scope: single Videos from TikTok, Instagram, and Facebook. Out of scope: images, carousels/albums, audio-only tracks, private/login-gated content, cookie/account integration.
+In scope: single Videos from YouTube, TikTok, Instagram, and Facebook. Out of scope: images, carousels/albums, audio-only tracks, private/login-gated content, cookie/account integration.
 
 ## User flow
 
@@ -44,7 +44,7 @@ In scope: single Videos from TikTok, Instagram, and Facebook. Out of scope: imag
 ## Acceptance criteria
 
 - [ ] `python -m smvd` starts a `localhost` server, prints the URL, auto-opens the browser.
-- [ ] Pasting a TikTok/Instagram/Facebook URL or share text creates a visible Job that progresses to done with a link to the saved MP4 in the configured directory.
+- [ ] Pasting a YouTube/TikTok/Instagram/Facebook URL or share text creates a visible Job that progresses to done with a link to the saved MP4 in the configured directory.
 - [ ] Jobs reflect pending/downloading/done/failed states; progress updates live.
 - [ ] Failed Jobs show one of the five categories and offer Retry; queued/downloading Jobs offer Cancel.
 - [ ] Same-URL duplicates produce distinct files; filename collisions are auto-incremented.

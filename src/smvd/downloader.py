@@ -68,9 +68,13 @@ class YtDlpDownloader:
         opts: dict[str, Any] = {
             "outtmpl": str(dest_dir / "%(title)s.%(ext)s"),
             "format": "bestvideo*+bestaudio/best",
+            "format_sort": ["ext:mp4:m4a"],
             "merge_output_format": "mp4",
             "restrictfilenames": True,
+            "trim_file_name": 200,
             "noplaylist": True,
+            "js_runtimes": {"deno": {}, "node": {}, "bun": {}, "quickjs": {}},
+            "remote_components": ["ejs:github"],
             "progress_hooks": [hook],
             "quiet": True,
             "no_warnings": True,
@@ -99,15 +103,26 @@ def _categorize(raw: str) -> tuple[Failure, str]:
     message = raw.strip().splitlines()[-1].strip() if raw.strip() else "Download failed."
     if "unsupported url" in lowered:
         return Failure.UNSUPPORTED_URL, message
-    if "login" in lowered or "authentication" in lowered or "private" in lowered or "requires sign" in lowered:
+    if (
+        "login" in lowered
+        or "authentication" in lowered
+        or "private" in lowered
+        or "requires sign" in lowered
+        or "sign in" in lowered
+        or "members-only" in lowered
+        or "members only" in lowered
+    ):
         return Failure.PRIVATE, message
     if (
         "video unavailable" in lowered
+        or "is unavailable" in lowered
         or "not available" in lowered
+        or "no longer available" in lowered
         or "removed" in lowered
         or "geo-restricted" in lowered
         or "geo-restriction" in lowered
         or "is not a valid url" in lowered
+        or "incomplete youtube id" in lowered
         or "404" in lowered
         or "this video has been" in lowered
     ):
