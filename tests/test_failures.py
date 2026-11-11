@@ -18,8 +18,8 @@ def _submit_and_wait(client, text="https://www.tiktok.com/@x/video/123"):
 
 
 def test_unsupported_url_category(client_factory):
-    client = client_factory(_fail(Failure.UNSUPPORTED_URL, "Unsupported URL: youtube.com"))
-    job = _submit_and_wait(client, "https://youtube.com/watch?v=abc")
+    client = client_factory(_fail(Failure.UNSUPPORTED_URL, "Unsupported URL: example.com"))
+    job = _submit_and_wait(client, "https://example.com/not-a-video")
     assert job["error"] == "unsupported_url"
 
 

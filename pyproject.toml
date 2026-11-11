@@ -1,12 +1,12 @@
 [project]
 name = "smvd"
 version = "0.1.0"
-description = "Local web app to download videos from TikTok, Instagram, and Facebook"
+description = "Local web app to download videos from YouTube, TikTok, Instagram, and Facebook"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
-    "yt-dlp>=2024.4.9",
+    "yt-dlp[default]>=2026.10.26",
 ]
 
 [project.scripts]

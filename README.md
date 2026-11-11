@@ -1,6 +1,6 @@
 # Video Downloader
 
-A local web application for Linux that downloads Videos from TikTok, Instagram, and Facebook to your computer.
+A local web application for Linux that downloads Videos from YouTube, TikTok, Instagram, and Facebook to your computer.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ python3 -m venv .venv
 .venv/bin/python -m smvd
 ```
 
-The app binds to `http://127.0.0.1:8653` (localhost only), prints the URL, and opens your browser. Paste a TikTok, Instagram, or Facebook video URL (or share text containing one) and click Download.
+The app binds to `http://127.0.0.1:8653` (localhost only), prints the URL, and opens your browser. Paste a YouTube, TikTok, Instagram, or Facebook video URL (or share text containing one) and click Download.
 
 Optional flags:
 
