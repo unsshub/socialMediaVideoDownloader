@@ -89,6 +89,37 @@
   .settings-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
   .settings-row .path { color: var(--muted); font-size: 0.85rem; }
   .settings-row input { min-width: 260px; }
+  .bookmarklet-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  a.bookmarklet {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg);
+    color: var(--accent);
+    border: 1px dashed var(--accent);
+    border-radius: 8px;
+    padding: 0.45rem 0.85rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: grab;
+    user-select: none;
+  }
+  a.bookmarklet:hover {
+    background: rgba(79, 140, 255, 0.12);
+  }
+  .bookmarklet-hint {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
   .empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 1rem 0; }
 </style>
 </head>
@@ -103,6 +134,10 @@
     </div>
     <div id="error" class="error"></div>
     <div id="banner" class="banner"></div>
+    <div class="bookmarklet-row">
+      <a id="bookmarklet" class="bookmarklet" href="javascript:void(window.open('http://127.0.0.1:8653/?url='+encodeURIComponent(location.href),'_blank'))">🔖 Download Video</a>
+      <span class="bookmarklet-hint">Drag this button to your bookmarks bar — click it on any video page to download automatically.</span>
+    </div>
   </section>
 
   <section class="card">
@@ -267,12 +302,12 @@
 
   function pollOnce() { refresh(); }
 
-  btn.onclick = function () {
-    var text = urlInput.value.trim();
+  function submitText(text) {
+    text = (text || "").trim();
     errEl.textContent = "";
-    if (!text) { errEl.textContent = "Paste a URL first."; return; }
+    if (!text) { errEl.textContent = "Paste a URL first."; return Promise.resolve(); }
     btn.disabled = true;
-    fetch("/jobs", {
+    return fetch("/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text: text })
@@ -280,7 +315,10 @@
       if (!r.ok) { return r.json().then(function (b) { throw new Error(b.detail || "Failed to start Download."); }); }
       urlInput.value = "";
       return r.json();
-    }).then(function () {
+    }).then(function (created) {
+      if (created && created.id && !seenState[created.id]) {
+        seenState[created.id] = "pending";
+      }
       return refresh();
     }).then(function (jobs) {
       var active = jobs.some(function (j) { return j.state === "pending" || j.state === "downloading"; });
@@ -290,8 +328,23 @@
     }).finally(function () {
       btn.disabled = false;
     });
+  }
+
+  btn.onclick = function () {
+    submitText(urlInput.value);
   };
   urlInput.addEventListener("keydown", function (e) { if (e.key === "Enter") { btn.onclick(); } });
+
+  var bookmarkletEl = document.getElementById("bookmarklet");
+  if (bookmarkletEl) {
+    if (window.location && window.location.origin && window.location.origin !== "null") {
+      bookmarkletEl.href = "javascript:void(window.open('" + window.location.origin + "/?url='+encodeURIComponent(location.href),'_blank'))";
+    }
+    bookmarkletEl.addEventListener("click", function (e) {
+      e.preventDefault();
+      showBanner("Drag this button to your bookmarks bar, then click it on any video page to download automatically.", true);
+    });
+  }
 
   function loadSettings() {
     return fetch("/settings").then(function (r) { return r.json(); }).then(function (s) {
@@ -314,7 +367,17 @@
     }).catch(function () { showBanner("Could not save Download Directory.", false); });
   };
 
-  Promise.all([loadSettings(), refresh()]);
+  var params = new URLSearchParams(window.location.search);
+  var autoUrl = params.get("url");
+  if (autoUrl) {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    urlInput.value = autoUrl;
+    Promise.all([loadSettings(), submitText(autoUrl)]);
+  } else {
+    Promise.all([loadSettings(), refresh()]);
+  }
 })();
 </script>
 </body>
